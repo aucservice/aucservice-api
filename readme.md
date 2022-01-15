@@ -6,17 +6,12 @@ REST API for the auction service application.
 
 ## Development
 
-Poetry is used to manage dependencies.
-
 ```bash
-# install poetry if not already installed
-$ pip install --user poetry
-
-# switch into poetry shell
-$ poetry shell
+# create virtualenv at venv
+$ virtualenv venv
 
 # install dependencies
-$ poetry update
+$ pip install -r requirements.txt 
 
 # set FLASK_APP to main application file
 $ export FLASK_APP=api.py

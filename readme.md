@@ -19,6 +19,9 @@ $ export FLASK_APP=api.py
 # enable debug mode
 $ export FLASK_DEBUG=1
 
+# set the secret key
+$ export SECRET_KEY=some_string
+
 # start development server
 $ flask run
 ```

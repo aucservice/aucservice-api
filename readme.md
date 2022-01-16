@@ -11,6 +11,8 @@ REST API for the auction service application.
 ```bash
 # create virtualenv at venv
 $ virtualenv venv
+
+# activate virtualenv
 $ source ./venv/bin/activate
 
 # install dependencies
@@ -37,6 +39,8 @@ PS> pip install --user virtualenv
 
 # create virtualenv at venv
 PS> python -m virtualenv venv
+
+# activate virtualenv
 PS> .\venv\Scripts\activate 
 
 # install dependencies
@@ -49,7 +53,7 @@ PS> $env:FLASK_APP='api.py'
 PS> $env:FLASK_DEBUG=1
 
 # set the secret key
-PS> $env:SECRET_KEY=some_string
+PS> $env:SECRET_KEY='some_string'
 
 # start development server
 PS> flask run

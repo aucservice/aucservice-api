@@ -1,6 +1,7 @@
 from flask import Flask, request
 from flask_restful import Resource, Api, reqparse, abort
 import datetime, os, jwt, functools
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 api = Api(app)
@@ -14,7 +15,7 @@ items = {
 }
 
 users = {
-	"user" : {"password": "pass"}
+	"user" : {"password": generate_password_hash("pass")}
 }
 
 parser = reqparse.RequestParser()
@@ -72,7 +73,7 @@ class Login(Resource):
 		if username not in users:
 			abort(404, message=f"User {username} does not exist")
 		user = users['user']
-		if password != user['password']:
+		if not check_password_hash(user['password'], password):
 			abort(400, message="Password is incorrect")
 		exp = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
 		token = jwt.encode({'username': username, 'exp': exp}, KEY, algorithm='HS256')

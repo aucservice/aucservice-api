@@ -48,10 +48,10 @@ class LotModel(db.Model):
 	description = db.Column(db.Text)
 	bidding_end = db.Column(db.DateTime, index = True, default = datetime.datetime.utcnow)
 
-class Bid(db.Model):
+class BidModel(db.Model):
 	__tablename__ = 'bid'
 	lot_id = db.Column(db.String(256), db.ForeignKey('lot.id'), primary_key=True)
-	username = db.Column(db.String(256), db.ForeignKey('user.username'), index=True)
+	username = db.Column(db.String(256), db.ForeignKey('user.username'), primary_key=True)
 	amount = db.Column(db.Integer)
 	timestamp = db.Column(db.DateTime, index = True, default = datetime.datetime.utcnow)
 
@@ -132,6 +132,48 @@ class LotItems(Resource):
 			"bidding_end": int(item.bidding_end.timestamp())}
 		return result
 
+class MyBid(Resource):
+	@login_required
+	def get(self, lot_id, *args, **kwargs):
+		user = kwargs['current_user']
+		bid = BidModel.query.filter_by(lot_id=lot_id, username=user.username).first()
+		if bid == None:
+			abort(404, message=f"Bid for lot {lot_id} by {user.username} does not exist")
+		return {"lot_id": bid.lot_id,
+		"username": bid.username,
+		"amount": bid.amount,
+		"timestamp": int(bid.timestamp.timestamp())}
+
+	@login_required
+	def delete(self, lot_id, *args, **kwargs):
+		user = kwargs['current_user']
+		bid_query = BidModel.query.filter_by(lot_id=lot_id, username=user.username)
+		if bid_query.first() == None:
+			abort(404, message=f"Bid for lot {lot_id} by {user.username} does not exist")
+		bid_query.delete()
+		db.session.commit()
+		return '', 204
+
+	@login_required
+	def put(self, lot_id, *args, **kwargs):
+		user = kwargs['current_user']
+		username = user.username
+		bid_query = BidModel.query.filter_by(lot_id=lot_id, username=username)
+		if bid_query.first():
+			abort(409, message=f"Bid for lot item {lot_id} by {username} already exists")
+		try:
+			amount = request.json['amount']
+		except:
+			abort(400, message='Incorrect header (json is required)')
+		timestamp = datetime.datetime.now()
+		bid = BidModel(lot_id = lot_id, username = username, amount = amount, timestamp = timestamp)
+		db.session.add(bid)
+		db.session.commit()
+		return {"lot_id": bid.lot_id,
+		"username": bid.username,
+		"amount": bid.amount,
+		"timestamp": int(bid.timestamp.timestamp())}
+
 class Login(Resource):
 	def get(self):
 		username = request.json['username']
@@ -183,6 +225,7 @@ class RefreshToken(Resource):
 api.add_resource(Name, '/')
 api.add_resource(LotItems, '/lots')
 api.add_resource(LotItem, '/lot/<lot_id>')
+api.add_resource(MyBid, '/my_bid/<lot_id>')
 api.add_resource(Login, '/login')
 api.add_resource(Register, '/register')
 api.add_resource(RefreshToken, '/refresh')

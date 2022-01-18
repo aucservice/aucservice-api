@@ -74,16 +74,16 @@ class Login(Resource):
 			abort(404, message=f"User {username} does not exist")
 		user = users['user']
 		if not check_password_hash(user['password'], password):
-			abort(400, message="Password is incorrect")
+			abort(401, message="Password is incorrect")
 		exp = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
 		token = jwt.encode({'username': username, 'exp': exp}, KEY, algorithm='HS256')
 		return {'username': username, 'token': token}
 
-class HelloWorld(Resource):
+class Name(Resource):
 	def get(self):
 		return {'name': 'aucservice'}
 
-api.add_resource(HelloWorld, '/')
+api.add_resource(Name, '/')
 api.add_resource(Items, '/items')
 api.add_resource(Item, '/items/<item_id>')
 api.add_resource(Login, '/login')

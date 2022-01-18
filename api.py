@@ -2,6 +2,7 @@ from flask import Flask, request
 from flask_restful import Resource, Api, reqparse, abort
 import datetime, os, jwt, functools
 from werkzeug.security import generate_password_hash, check_password_hash
+import re
 
 app = Flask(__name__)
 api = Api(app)
@@ -67,7 +68,6 @@ class Items(Resource):
 
 class Login(Resource):
 	def get(self):
-		args = parser.parse_args()
 		username = request.json['username']
 		password = request.json['password']
 		if username not in users:
@@ -79,6 +79,19 @@ class Login(Resource):
 		token = jwt.encode({'username': username, 'exp': exp}, KEY, algorithm='HS256')
 		return {'username': username, 'token': token}
 
+class Register(Resource):
+	def post(self):
+		username = request.json['username']
+		password = request.json['password']
+		if not re.match(r'^[A-Za-z0-9_]+$', username):
+			abort(400, message="Username is not valid")
+		if len(password) < 4:
+			abort(400, message="Password is too short")
+		if username in users:
+			abort(409, message=f"User {username} already exists")
+		users[username] = {"password": generate_password_hash(password)}
+		return {"message": "User registered successfully"}
+
 class Name(Resource):
 	def get(self):
 		return {'name': 'aucservice'}
@@ -87,6 +100,7 @@ api.add_resource(Name, '/')
 api.add_resource(Items, '/items')
 api.add_resource(Item, '/items/<item_id>')
 api.add_resource(Login, '/login')
+api.add_resource(Register, '/register')
 
 if __name__ == '__main__':
 	app.run(debug=True)

@@ -40,6 +40,21 @@ class User(db.Model):
 	def password(self, password):
 		self.password_hash = generate_password_hash(password)
 
+class Lot(db.Model):
+	__tablename__ = 'lot'
+	id = db.Column(db.String(256), primary_key = True)
+	title = db.Column(db.String(256), index = True)
+	image_url = db.Column(db.String(256))
+	description = db.Column(db.Text)
+	bidding_end = db.Column(db.DateTime, index = True, default = datetime.datetime.utcnow)
+
+class Bid(db.Model):
+	__tablename__ = 'bid'
+	lot_id = db.Column(db.String(256), db.ForeignKey('lot.id'), primary_key=True)
+	username = db.Column(db.String(256), db.ForeignKey('user.username'), primary_key=True)
+	amount = db.Column(db.Integer)
+	timestamp = db.Column(db.DateTime, index = True, default = datetime.datetime.utcnow)
+
 def login_required(method):
 	@functools.wraps(method)
 	def wrapper(*args, **kwargs):
@@ -64,29 +79,58 @@ def login_required(method):
 		return method(*args, **kwargs)
 	return wrapper
 
-class Item(Resource):
-	def get(self, item_id):
-		if item_id not in items:
-			abort(404, message=f"Item {item_id} does not exist")
-		return items[item_id]
+class LotItem(Resource):
+	def get(self, lot_id):
+		item = Lot.query.filter_by(id=lot_id).first()
+		if item == None:
+			abort(404, message=f"Lot item {lot_id} does not exist")
+		return {"id": item.id,
+		"title": item.title,
+		"image_url": item.image_url,
+		"description": item.description,
+		"bidding_end": int(item.bidding_end.timestamp())}
 
 	@login_required
-	def delete(self, item_id, *args, **kwargs):
-		if item_id not in items:
-			abort(404, message=f"Item {item_id} does not exist")
-		del items[item_id]
+	def delete(self, lot_id, *args, **kwargs):
+		item_query = Lot.query.filter_by(id=lot_id)
+		if item_query.first() == None:
+			abort(404, message=f"Lot item {lot_id} does not exist")
+		item_query.delete()
+		db.session.commit()
 		return '', 204
 
 	@login_required
-	def put(self, item_id, *args, **kwargs):
-		args = parser.parse_args()
-		item = {'price': args['price']}
-		items[item_id] = item
-		return item, 201
+	def put(self, lot_id, *args, **kwargs):
+		item_query = Lot.query.filter_by(id=lot_id)
+		if item_query.first():
+			abort(409, message=f"Lot item {lot_id} already exists")
+		try:
+			title = request.json['title']
+			description = request.json['description']
+			image_url = request.json['image_url']
+		except:
+			abort(400, message='Incorrect header (json is required)')
+		bidding_end = datetime.datetime.now()
+		item = Lot(id = lot_id, title = title, description = description, image_url = image_url, bidding_end = bidding_end)
+		db.session.add(item)
+		db.session.commit()
+		return {"id": item.id,
+		"title": item.title,
+		"image_url": item.image_url,
+		"description": item.description,
+		"bidding_end": int(item.bidding_end.timestamp())}, 201
 
-class Items(Resource):
+class LotItems(Resource):
 	def get(self):
-		return items
+		items = Lot.query.all()
+		result = {}
+		for item in items:
+			result[item.id] = {"id": item.id,
+			"title": item.title,
+			"image_url": item.image_url,
+			"description": item.description,
+			"bidding_end": int(item.bidding_end.timestamp())}
+		return result
 
 class Login(Resource):
 	def get(self):
@@ -137,8 +181,8 @@ class RefreshToken(Resource):
 		return {'username': username, 'token': token}
 
 api.add_resource(Name, '/')
-api.add_resource(Items, '/items')
-api.add_resource(Item, '/items/<item_id>')
+api.add_resource(LotItems, '/lots')
+api.add_resource(LotItem, '/lot/<lot_id>')
 api.add_resource(Login, '/login')
 api.add_resource(Register, '/register')
 api.add_resource(RefreshToken, '/refresh')

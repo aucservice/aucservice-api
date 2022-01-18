@@ -40,7 +40,7 @@ class User(db.Model):
 	def password(self, password):
 		self.password_hash = generate_password_hash(password)
 
-class Lot(db.Model):
+class LotModel(db.Model):
 	__tablename__ = 'lot'
 	id = db.Column(db.String(256), primary_key = True)
 	title = db.Column(db.String(256), index = True)
@@ -51,7 +51,7 @@ class Lot(db.Model):
 class Bid(db.Model):
 	__tablename__ = 'bid'
 	lot_id = db.Column(db.String(256), db.ForeignKey('lot.id'), primary_key=True)
-	username = db.Column(db.String(256), db.ForeignKey('user.username'), primary_key=True)
+	username = db.Column(db.String(256), db.ForeignKey('user.username'), index=True)
 	amount = db.Column(db.Integer)
 	timestamp = db.Column(db.DateTime, index = True, default = datetime.datetime.utcnow)
 
@@ -81,7 +81,7 @@ def login_required(method):
 
 class LotItem(Resource):
 	def get(self, lot_id):
-		item = Lot.query.filter_by(id=lot_id).first()
+		item = LotModel.query.filter_by(id=lot_id).first()
 		if item == None:
 			abort(404, message=f"Lot item {lot_id} does not exist")
 		return {"id": item.id,
@@ -92,7 +92,7 @@ class LotItem(Resource):
 
 	@login_required
 	def delete(self, lot_id, *args, **kwargs):
-		item_query = Lot.query.filter_by(id=lot_id)
+		item_query = LotModel.query.filter_by(id=lot_id)
 		if item_query.first() == None:
 			abort(404, message=f"Lot item {lot_id} does not exist")
 		item_query.delete()
@@ -101,7 +101,7 @@ class LotItem(Resource):
 
 	@login_required
 	def put(self, lot_id, *args, **kwargs):
-		item_query = Lot.query.filter_by(id=lot_id)
+		item_query = LotModel.query.filter_by(id=lot_id)
 		if item_query.first():
 			abort(409, message=f"Lot item {lot_id} already exists")
 		try:
@@ -111,7 +111,7 @@ class LotItem(Resource):
 		except:
 			abort(400, message='Incorrect header (json is required)')
 		bidding_end = datetime.datetime.now()
-		item = Lot(id = lot_id, title = title, description = description, image_url = image_url, bidding_end = bidding_end)
+		item = LotModel(id = lot_id, title = title, description = description, image_url = image_url, bidding_end = bidding_end)
 		db.session.add(item)
 		db.session.commit()
 		return {"id": item.id,
@@ -122,7 +122,7 @@ class LotItem(Resource):
 
 class LotItems(Resource):
 	def get(self):
-		items = Lot.query.all()
+		items = LotModel.query.all()
 		result = {}
 		for item in items:
 			result[item.id] = {"id": item.id,

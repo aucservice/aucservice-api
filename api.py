@@ -110,7 +110,7 @@ class LotItem(Resource):
 			image_url = request.json['image_url']
 		except:
 			abort(400, message='Incorrect header (json is required)')
-		bidding_end = datetime.datetime.now()
+		bidding_end = datetime.datetime.now() + datetime.timedelta(hours=24)
 		item = LotModel(id = lot_id, title = title, description = description, image_url = image_url, bidding_end = bidding_end)
 		db.session.add(item)
 		db.session.commit()

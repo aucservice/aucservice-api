@@ -31,6 +31,11 @@ $ export FLASK_DEBUG=1
 # set the secret key
 $ export SECRET_KEY=some_string
 
+# create the database
+$ flask shell
+>>> from api import db
+>>> db.create_all()
+
 # start development server
 $ flask run
 ```
@@ -59,6 +64,11 @@ PS> $env:FLASK_DEBUG=1
 # set the secret key
 PS> $env:SECRET_KEY='some_string'
 
+# create the database
+PS> flask shell
+>>> from api import db
+>>> db.create_all()
+
 # start development server
 PS> flask run
 ```
@@ -66,6 +76,8 @@ PS> flask run
 ## Production
 
 ### Linux (openrc, nginx, uWSGI)
+
+Clone the repository to `/srv/aucservice-api` and create the database.
 
 #### Gentoo
 

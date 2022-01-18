@@ -27,14 +27,17 @@ def login_required(method):
 	def wrapper(*args, **kwargs):
 		header = request.headers.get('Authorization')
 		if header is None:
-			abort(400, message='Login is required')
-		_, token = header.split()
+			abort(403, message='Login is required')
+		try:
+			_, token = header.split()
+		except:
+			abort(400, message='Incorrect header')
 		try:
 			decoded = jwt.decode(token, KEY, algorithms='HS256')
 		except jwt.DecodeError:
-			abort(400, message='Token is not valid.')
+			abort(400, message='Token is not valid')
 		except jwt.ExpiredSignatureError:
-			abort(400, message='Token is expired.')
+			abort(400, message='Token is expired')
 		username = decoded['username']
 		if username not in users:
 			abort(400, message=f'User {username} is not found.')
@@ -92,6 +95,12 @@ class Register(Resource):
 		users[username] = {"password": generate_password_hash(password)}
 		return {"message": "User registered successfully"}
 
+class UserList(Resource):
+	@login_required
+	def get(self):
+		return {"users": list(users.keys())}
+
+
 class Name(Resource):
 	def get(self):
 		return {'name': 'aucservice'}
@@ -101,6 +110,7 @@ api.add_resource(Items, '/items')
 api.add_resource(Item, '/items/<item_id>')
 api.add_resource(Login, '/login')
 api.add_resource(Register, '/register')
+api.add_resource(UserList, '/users')
 
 if __name__ == '__main__':
 	app.run(debug=True)

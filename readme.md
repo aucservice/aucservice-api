@@ -1,6 +1,10 @@
 # Auction Service Api
 
-REST API for the auction service application.
+REST API service for the auction service application.
+
+# API reference
+
+See [wiki](https://github.com/aucservice/aucservice-api/wiki/REST-API).
 
 # Installation
 

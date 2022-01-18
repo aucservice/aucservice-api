@@ -22,6 +22,11 @@ items = {
 parser = reqparse.RequestParser()
 parser.add_argument('price')
 
+def get_token(username):
+	exp = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+	token = jwt.encode({'username': username, 'exp': exp}, app.config['SECRET_KEY'], algorithm='HS256')
+	return token
+
 class User(db.Model):
 	__tablename__ = 'user'
 	username = db.Column(db.String(256), unique = True, index = True, primary_key = True)
@@ -92,8 +97,7 @@ class Login(Resource):
 			abort(404, message=f"User {username} does not exist")
 		if not check_password_hash(user.password_hash, password):
 			abort(401, message="Password is incorrect")
-		exp = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
-		token = jwt.encode({'username': username, 'exp': exp}, app.config['SECRET_KEY'], algorithm='HS256')
+		token = get_token(username)
 		return {'username': username, 'token': token}
 
 class Register(Resource):
@@ -121,16 +125,23 @@ class WhoAmI(Resource):
 	def get(self, *args, **kwargs):
 		return {"username": kwargs['current_user'].username}
 
-
 class Name(Resource):
 	def get(self):
 		return {'name': 'aucservice'}
+
+class RefreshToken(Resource):
+	@login_required
+	def get(self, *args, **kwargs):
+		username = kwargs['current_user'].username
+		token = get_token(username)
+		return {'username': username, 'token': token}
 
 api.add_resource(Name, '/')
 api.add_resource(Items, '/items')
 api.add_resource(Item, '/items/<item_id>')
 api.add_resource(Login, '/login')
 api.add_resource(Register, '/register')
+api.add_resource(RefreshToken, '/refresh')
 api.add_resource(UserList, '/users')
 api.add_resource(WhoAmI, '/whoami')
 

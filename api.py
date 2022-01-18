@@ -1,13 +1,17 @@
 from flask import Flask, request
 from flask_restful import Resource, Api, reqparse, abort
+from flask_sqlalchemy import SQLAlchemy
 import datetime, os, jwt, functools
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
+from config import Config
 
 app = Flask(__name__)
+app.config.from_object(Config)
+Config.init_app(app)
 api = Api(app)
-
-KEY = os.environ['SECRET_KEY']
+db = SQLAlchemy()
+db.init_app(app)
 
 items = {
 	"A" : {"price": 123},
@@ -15,12 +19,21 @@ items = {
 	"C" : {"price": 112}
 }
 
-users = {
-	"user" : {"password": generate_password_hash("pass")}
-}
-
 parser = reqparse.RequestParser()
 parser.add_argument('price')
+
+class User(db.Model):
+	__tablename__ = 'user'
+	username = db.Column(db.String(256), unique = True, index = True, primary_key = True)
+	password_hash = db.Column(db.String(128))
+
+	@property
+	def password(self):
+		raise AttributeError()
+
+	@password.setter
+	def password(self, password):
+		self.password_hash = generate_password_hash(password)
 
 def login_required(method):
 	@functools.wraps(method)
@@ -33,15 +46,15 @@ def login_required(method):
 		except:
 			abort(400, message='Incorrect header')
 		try:
-			decoded = jwt.decode(token, KEY, algorithms='HS256')
+			decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms='HS256')
 		except jwt.DecodeError:
 			abort(400, message='Token is not valid')
 		except jwt.ExpiredSignatureError:
 			abort(400, message='Token is expired')
 		username = decoded['username']
-		if username not in users:
+		user = User.query.filter_by(username=username).first()
+		if user == None:
 			abort(400, message=f'User {username} is not found.')
-		user = users[username]
 		return method(*args, **kwargs)
 	return wrapper
 
@@ -73,13 +86,13 @@ class Login(Resource):
 	def get(self):
 		username = request.json['username']
 		password = request.json['password']
-		if username not in users:
+		user = User.query.filter_by(username=username).first()
+		if user == None:
 			abort(404, message=f"User {username} does not exist")
-		user = users['user']
-		if not check_password_hash(user['password'], password):
+		if not check_password_hash(user.password_hash, password):
 			abort(401, message="Password is incorrect")
 		exp = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
-		token = jwt.encode({'username': username, 'exp': exp}, KEY, algorithm='HS256')
+		token = jwt.encode({'username': username, 'exp': exp}, app.config['SECRET_KEY'], algorithm='HS256')
 		return {'username': username, 'token': token}
 
 class Register(Resource):
@@ -90,15 +103,17 @@ class Register(Resource):
 			abort(400, message="Username is not valid")
 		if len(password) < 4:
 			abort(400, message="Password is too short")
-		if username in users:
+		if User.query.filter_by(username=username).first():
 			abort(409, message=f"User {username} already exists")
-		users[username] = {"password": generate_password_hash(password)}
+		user = User(username=username, password=password)
+		db.session.add(user)
+		db.session.commit()
 		return {"message": "User registered successfully"}
 
 class UserList(Resource):
 	@login_required
 	def get(self):
-		return {"users": list(users.keys())}
+		return {"users": [u.username for u in User.query.all()]}
 
 
 class Name(Resource):

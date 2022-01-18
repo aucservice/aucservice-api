@@ -55,6 +55,7 @@ def login_required(method):
 		user = User.query.filter_by(username=username).first()
 		if user == None:
 			abort(400, message=f'User {username} is not found.')
+		kwargs['current_user'] = user
 		return method(*args, **kwargs)
 	return wrapper
 
@@ -65,14 +66,14 @@ class Item(Resource):
 		return items[item_id]
 
 	@login_required
-	def delete(self, item_id):
+	def delete(self, item_id, *args, **kwargs):
 		if item_id not in items:
 			abort(404, message=f"Item {item_id} does not exist")
 		del items[item_id]
 		return '', 204
 
 	@login_required
-	def put(self, item_id):
+	def put(self, item_id, *args, **kwargs):
 		args = parser.parse_args()
 		item = {'price': args['price']}
 		items[item_id] = item
@@ -112,8 +113,13 @@ class Register(Resource):
 
 class UserList(Resource):
 	@login_required
-	def get(self):
+	def get(self, *args, **kwargs):
 		return {"users": [u.username for u in User.query.all()]}
+
+class WhoAmI(Resource):
+	@login_required
+	def get(self, *args, **kwargs):
+		return {"username": kwargs['current_user'].username}
 
 
 class Name(Resource):
@@ -126,6 +132,7 @@ api.add_resource(Item, '/items/<item_id>')
 api.add_resource(Login, '/login')
 api.add_resource(Register, '/register')
 api.add_resource(UserList, '/users')
+api.add_resource(WhoAmI, '/whoami')
 
 if __name__ == '__main__':
 	app.run(debug=True)

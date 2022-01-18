@@ -199,7 +199,8 @@ class Register(Resource):
 		user = User(username=username, password=password)
 		db.session.add(user)
 		db.session.commit()
-		return {"message": "User registered successfully"}
+		token = get_token(username)
+		return {"message": "User registered successfully", "token": token}, 201
 
 class UserList(Resource):
 	@login_required

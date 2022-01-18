@@ -174,6 +174,19 @@ class MyBid(Resource):
 		"amount": bid.amount,
 		"timestamp": int(bid.timestamp.timestamp())}
 
+class Bids(Resource):
+	def get(self):
+		bids = BidModel.query.all()
+		result = {}
+		for bid in bids:
+			if bid.lot_id not in result:
+				result[bid.lot_id] = []
+			result[bid.lot_id].append({"lot_id": bid.lot_id,
+			"username": bid.username,
+			"amount": bid.amount,
+			"timestamp": int(bid.timestamp.timestamp())})
+		return result
+
 class Login(Resource):
 	def get(self):
 		username = request.json['username']
@@ -227,6 +240,7 @@ api.add_resource(Name, '/')
 api.add_resource(LotItems, '/lots')
 api.add_resource(LotItem, '/lot/<lot_id>')
 api.add_resource(MyBid, '/my_bid/<lot_id>')
+api.add_resource(Bids, '/bids')
 api.add_resource(Login, '/login')
 api.add_resource(Register, '/register')
 api.add_resource(RefreshToken, '/refresh')

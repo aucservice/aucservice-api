@@ -165,6 +165,8 @@ class MyBid(Resource):
 			amount = request.json['amount']
 		except:
 			abort(400, message='Incorrect header (json is required)')
+		if type(amount) != int or amount <= 0:
+			abort(400, message='amount must be positive integer')
 		timestamp = datetime.datetime.now()
 		bid = BidModel(lot_id = lot_id, username = username, amount = amount, timestamp = timestamp)
 		db.session.add(bid)

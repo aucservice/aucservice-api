@@ -13,15 +13,6 @@ api = Api(app)
 db = SQLAlchemy()
 db.init_app(app)
 
-items = {
-	"A" : {"price": 123},
-	"B" : {"price": 256},
-	"C" : {"price": 112}
-}
-
-parser = reqparse.RequestParser()
-parser.add_argument('price')
-
 def get_token(username):
 	exp = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
 	token = jwt.encode({'username': username, 'exp': exp}, app.config['SECRET_KEY'], algorithm='HS256')

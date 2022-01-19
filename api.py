@@ -158,9 +158,13 @@ class MyBid(Resource):
 	def put(self, lot_id, *args, **kwargs):
 		user = kwargs['current_user']
 		username = user.username
+		lot_query = LotModel.query.filter_by(id=lot_id)
+		if lot_query.first() == None:
+			abort(404, message=f"Lot item {lot_id} does not exist")
 		bid_query = BidModel.query.filter_by(lot_id=lot_id, username=username)
 		if bid_query.first():
-			abort(409, message=f"Bid for lot item {lot_id} by {username} already exists")
+			bid_query.delete()
+			db.session.commit()
 		try:
 			amount = request.json['amount']
 		except:
